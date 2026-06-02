@@ -2,6 +2,7 @@ package ru.practicum.stats.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -17,5 +18,7 @@ public class EndpointHit {
     private String app;
     private String uri;
     private String ip;
-    private LocalDateTime timestamp;
+
+    @Column(name = "create_ts")
+    private LocalDateTime createTs;
 }

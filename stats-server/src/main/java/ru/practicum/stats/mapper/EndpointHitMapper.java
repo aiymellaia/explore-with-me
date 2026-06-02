@@ -13,7 +13,7 @@ public class EndpointHitMapper {
                 .app(dto.getApp())
                 .uri(dto.getUri())
                 .ip(dto.getIp())
-                .timestamp(LocalDateTime.parse(dto.getTimestamp(), formatter))
+                .createTs(LocalDateTime.parse(dto.getTimestamp(), formatter))
                 .build();
     }
 }
