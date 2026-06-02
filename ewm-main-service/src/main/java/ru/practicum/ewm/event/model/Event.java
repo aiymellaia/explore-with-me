@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import ru.practicum.ewm.category.model.Category;
 import ru.practicum.ewm.user.model.User;
-import ru.practicum.ewm.event.model.EventState;
 
 import java.time.LocalDateTime;
 
@@ -39,23 +38,31 @@ public class Event {
     @JoinColumn(name = "initiator_id")
     private User initiator;
 
-    private Float lat;
-    private Float lon;
+    @Builder.Default
+    private Float lat = 0.0f;
 
-    private Boolean paid;
+    @Builder.Default
+    private Float lon = 0.0f;
 
+    @Builder.Default
+    private Boolean paid = false;
+
+    @Builder.Default
     @Column(name = "participant_limit")
-    private Integer participantLimit;
+    private Integer participantLimit = 0;
 
+    @Builder.Default
     @Column(name = "created_on")
-    private LocalDateTime createdOn;
+    private LocalDateTime createdOn = LocalDateTime.now();
 
     @Column(name = "published_on")
     private LocalDateTime publishedOn;
 
+    @Builder.Default
     @Column(name = "request_moderation")
-    private Boolean requestModeration;
+    private Boolean requestModeration = true;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
-    private EventState state; // Нужно создать Enum State {PENDING, PUBLISHED, CANCELED}
+    private EventState state = EventState.PENDING;
 }
