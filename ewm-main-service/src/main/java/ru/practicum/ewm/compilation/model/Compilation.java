@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import ru.practicum.ewm.event.model.Event;
 
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -22,14 +23,16 @@ public class Compilation {
     @Column(nullable = false)
     private String title;
 
+    @Builder.Default
     @Column(nullable = false)
-    private Boolean pinned;
+    private Boolean pinned = false;
 
+    @Builder.Default // Обязательно для корректной работы Builder
     @ManyToMany
     @JoinTable(
             name = "compilation_events",
             joinColumns = @JoinColumn(name = "compilation_id"),
             inverseJoinColumns = @JoinColumn(name = "event_id")
     )
-    private Set<Event> events;
+    private Set<Event> events = new HashSet<>();
 }

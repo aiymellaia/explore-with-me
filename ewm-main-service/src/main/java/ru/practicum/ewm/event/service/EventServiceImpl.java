@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.client.StatsClient;
@@ -27,6 +27,7 @@ import ru.practicum.ewm.request.repository.RequestRepository;
 import ru.practicum.ewm.user.model.User;
 import ru.practicum.ewm.user.repository.UserRepository;
 import ru.practicum.ewm.event.model.UserStateAction;
+import ru.practicum.ewm.utils.OffsetBasedPageRequest;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -89,7 +90,7 @@ public class EventServiceImpl implements EventService {
             throw new ValidationException("Редактировать можно только свои события");
         }
         if (event.getState().equals(EventState.PUBLISHED)) {
-            throw new ValidationException("Нельзя изменить опубликованное событие");
+            throw new ConflictException("Нельзя изменить опубликованное событие");
         }
 
         updateEventFields(event, update);
@@ -113,7 +114,7 @@ public class EventServiceImpl implements EventService {
         if (update.getStateAction() != null) {
             if (update.getStateAction() == AdminStateAction.PUBLISH_EVENT) {
                 if (!event.getState().equals(EventState.PENDING)) {
-                    throw new ValidationException("Событие можно опубликовать только в состоянии ожидания");
+                    throw new ConflictException("Событие можно опубликовать только в состоянии ожидания");
                 }
                 event.setState(EventState.PUBLISHED);
                 if (event.getEventDate().isBefore(LocalDateTime.now().plusHours(1))) {
@@ -122,7 +123,7 @@ public class EventServiceImpl implements EventService {
                 event.setPublishedOn(LocalDateTime.now());
             } else if (update.getStateAction() == AdminStateAction.REJECT_EVENT) {
                 if (event.getState().equals(EventState.PUBLISHED)) {
-                    throw new ValidationException("Нельзя отклонить уже опубликованное событие");
+                    throw new ConflictException("Нельзя отклонить уже опубликованное событие");
                 }
                 event.setState(EventState.CANCELED);
             }
@@ -144,7 +145,7 @@ public class EventServiceImpl implements EventService {
         }
 
         return eventRepository.findAll(EventSpecification.filterEvents(users, states, categories, rangeStart, rangeEnd),
-                        PageRequest.of(from / size, size))
+                        new OffsetBasedPageRequest(from, size, Sort.unsorted()))
                 .stream()
                 .map(EventMapper::toEventFullDto)
                 .collect(Collectors.toList());
@@ -159,16 +160,22 @@ public class EventServiceImpl implements EventService {
         if (!event.getState().equals(EventState.PUBLISHED)) {
             throw new NotFoundException("Событие еще не опубликовано");
         }
-
         statsClient.addHit(EndpointHitDto.builder()
                 .app("ewm-main-service")
                 .uri(request.getRequestURI())
                 .ip(request.getRemoteAddr())
                 .timestamp(LocalDateTime.now().format(formatter))
                 .build());
-
+        Object statsResponse = statsClient.getStats(
+                "2000-01-01 00:00:00",
+                LocalDateTime.now().format(formatter),
+                new String[]{request.getRequestURI()},
+                true);
+        List<ViewStatsDto> statsList = objectMapper.convertValue(statsResponse, new TypeReference<List<ViewStatsDto>>() {
+        });
         EventFullDto dto = EventMapper.toEventFullDto(event);
-
+        long views = statsList.isEmpty() ? 0L : statsList.get(0).getHits();
+        dto.setViews(views);
         dto.setConfirmedRequests(getConfirmedRequests(eventId));
 
         return dto;
@@ -196,7 +203,7 @@ public class EventServiceImpl implements EventService {
 
         List<Event> events = eventRepository.findAll(
                 EventSpecification.filterPublicEvents(text, categories, paid, rangeStart, rangeEnd),
-                PageRequest.of(from / size, size)
+                new OffsetBasedPageRequest(from, size, Sort.unsorted())
         ).getContent();
 
         List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
@@ -215,7 +222,7 @@ public class EventServiceImpl implements EventService {
         List<EventShortDto> result = events.stream()
                 .map(event -> {
                     EventShortDto dto = EventMapper.toEventShortDto(event);
-                    dto.setConfirmedRequests(confirmedMap.getOrDefault(event.getId(), 0L).intValue());
+                    dto.setConfirmedRequests(confirmedMap.getOrDefault(event.getId(), 0L));
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -226,7 +233,8 @@ public class EventServiceImpl implements EventService {
                     .toArray(String[]::new);
 
             Object statsResponse = statsClient.getStats("2000-01-01 00:00:00", "2100-01-01 00:00:00", uris, true);
-            List<ViewStatsDto> statsList = objectMapper.convertValue(statsResponse, new TypeReference<List<ViewStatsDto>>(){});
+            List<ViewStatsDto> statsList = objectMapper.convertValue(statsResponse, new TypeReference<List<ViewStatsDto>>() {
+            });
 
             Map<String, Long> statsMap = statsList.stream()
                     .collect(Collectors.toMap(ViewStatsDto::getUri, ViewStatsDto::getHits));
@@ -251,7 +259,7 @@ public class EventServiceImpl implements EventService {
             throw new ValidationException("Параметры пагинации должны быть положительными");
         }
 
-        return eventRepository.findAllByInitiatorId(userId, PageRequest.of(from / size, size))
+        return eventRepository.findAllByInitiatorId(userId, new OffsetBasedPageRequest(from, size, Sort.unsorted()))
                 .stream()
                 .map(EventMapper::toEventShortDto)
                 .collect(Collectors.toList());
@@ -262,7 +270,7 @@ public class EventServiceImpl implements EventService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Событие не найдено"));
         if (!event.getInitiator().getId().equals(userId)) {
-            throw new ValidationException("Вы не являетесь инициатором этого события");
+            throw new ConflictException("Вы не являетесь инициатором этого события");
         }
         return EventMapper.toEventFullDto(event);
     }

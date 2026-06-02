@@ -1,7 +1,8 @@
 package ru.practicum.ewm.compilation.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.compilation.dto.*;
@@ -11,6 +12,8 @@ import ru.practicum.ewm.compilation.repository.CompilationRepository;
 import ru.practicum.ewm.event.model.Event;
 import ru.practicum.ewm.event.repository.EventRepository;
 import ru.practicum.ewm.exception.NotFoundException;
+import ru.practicum.ewm.exception.ValidationException;
+import ru.practicum.ewm.utils.OffsetBasedPageRequest;
 
 import java.util.HashSet;
 import java.util.List;
@@ -72,7 +75,10 @@ public class CompilationServiceImpl implements CompilationService {
 
     @Override
     public List<CompilationDto> getCompilations(Boolean pinned, Integer from, Integer size) {
-        PageRequest page = PageRequest.of(from / size, size);
+        if (from < 0 || size <= 0) {
+            throw new ValidationException("Параметры пагинации должны быть положительными");
+        }
+        Pageable page = new OffsetBasedPageRequest(from, size, Sort.unsorted());
         List<Compilation> compilations;
 
         if (pinned != null) {

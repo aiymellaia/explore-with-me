@@ -23,6 +23,8 @@ public class EventMapper {
                 .publishedOn(event.getPublishedOn())
                 .requestModeration(event.getRequestModeration())
                 .state(event.getState())
+                .views(0L)
+                .confirmedRequests(0L)
                 .build();
     }
 
@@ -35,6 +37,8 @@ public class EventMapper {
                 .eventDate(event.getEventDate())
                 .initiator(UserMapper.toUserShortDto(event.getInitiator()))
                 .paid(event.getPaid())
+                .confirmedRequests(0L)
+                .views(0L)
                 .build();
     }
 }

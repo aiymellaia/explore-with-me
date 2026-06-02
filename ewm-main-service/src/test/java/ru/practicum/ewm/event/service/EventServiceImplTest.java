@@ -59,7 +59,7 @@ class EventServiceImplTest {
         Event event = Event.builder().state(EventState.PUBLISHED).initiator(new User(1L, "A", "b@c.ru")).build();
         when(eventRepository.findById(1L)).thenReturn(Optional.of(event));
 
-        assertThrows(ValidationException.class, () ->
+        assertThrows(ConflictException.class, () ->
                 eventService.updateEvent(1L, 1L, new ru.practicum.ewm.event.dto.UpdateEventUserRequest()));
     }
 
@@ -72,7 +72,7 @@ class EventServiceImplTest {
         UpdateEventAdminRequest update = new UpdateEventAdminRequest();
         update.setStateAction(AdminStateAction.PUBLISH_EVENT);
 
-        assertThrows(ValidationException.class, () -> eventService.updateEventAdmin(1L, update));
+        assertThrows(ConflictException.class, () -> eventService.updateEventAdmin(1L, update));
     }
 
     @Test

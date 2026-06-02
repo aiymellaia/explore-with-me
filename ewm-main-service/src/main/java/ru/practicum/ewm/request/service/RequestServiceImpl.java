@@ -8,7 +8,6 @@ import ru.practicum.ewm.event.model.EventState;
 import ru.practicum.ewm.event.repository.EventRepository;
 import ru.practicum.ewm.exception.ConflictException;
 import ru.practicum.ewm.exception.NotFoundException;
-import ru.practicum.ewm.exception.ValidationException;
 import ru.practicum.ewm.request.dto.EventRequestStatusUpdateRequest;
 import ru.practicum.ewm.request.dto.EventRequestStatusUpdateResult;
 import ru.practicum.ewm.request.dto.ParticipationRequestDto;
@@ -52,15 +51,15 @@ public class RequestServiceImpl implements RequestService {
                 .orElseThrow(() -> new NotFoundException("Событие не найдено"));
 
         if (requestRepository.existsByRequesterIdAndEventId(userId, eventId)) {
-            throw new ValidationException("Заявка уже существует");
+            throw new ConflictException("Заявка уже существует");
         }
 
         if (event.getInitiator().getId().equals(userId)) {
-            throw new ValidationException("Нельзя подать заявку на свое событие");
+            throw new ConflictException("Нельзя подать заявку на свое событие");
         }
 
         if (!event.getState().equals(EventState.PUBLISHED)) {
-            throw new ValidationException("Нельзя подать заявку на неопубликованное событие");
+            throw new ConflictException("Нельзя подать заявку на неопубликованное событие");
         }
 
         if (event.getParticipantLimit() != 0) {
@@ -90,7 +89,7 @@ public class RequestServiceImpl implements RequestService {
                 .orElseThrow(() -> new NotFoundException("Заявка не найдена"));
 
         if (!request.getRequester().getId().equals(userId)) {
-            throw new ValidationException("Вы не можете отменить чужую заявку");
+            throw new ConflictException("Вы не можете отменить чужую заявку");
         }
 
         request.setStatus(RequestStatus.CANCELED);
@@ -104,7 +103,7 @@ public class RequestServiceImpl implements RequestService {
                 .orElseThrow(() -> new NotFoundException("Событие не найдено"));
 
         if (!event.getInitiator().getId().equals(userId)) {
-            throw new ValidationException("Вы не инициатор события");
+            throw new ConflictException("Вы не инициатор события");
         }
 
         List<ParticipationRequest> requests = requestRepository.findAllById(update.getRequestIds())
@@ -114,7 +113,7 @@ public class RequestServiceImpl implements RequestService {
 
         for (ParticipationRequest req : requests) {
             if (!req.getStatus().equals(RequestStatus.PENDING)) {
-                throw new ValidationException("Статус можно изменить только у заявок в состоянии ожидания");
+                throw new ConflictException("Статус можно изменить только у заявок в состоянии ожидания");
             }
         }
 
@@ -172,7 +171,7 @@ public class RequestServiceImpl implements RequestService {
                 .orElseThrow(() -> new NotFoundException("Событие не найдено"));
 
         if (!event.getInitiator().getId().equals(userId)) {
-            throw new ValidationException("Вы не инициатор события");
+            throw new ConflictException("Вы не инициатор события");
         }
 
         return requestRepository.findAllByEventId(eventId).stream()

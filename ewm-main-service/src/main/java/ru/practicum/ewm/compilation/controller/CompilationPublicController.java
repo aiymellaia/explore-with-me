@@ -8,6 +8,7 @@ import ru.practicum.ewm.compilation.service.CompilationService;
 
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
+
 import java.util.List;
 
 @RestController
@@ -27,7 +28,7 @@ public class CompilationPublicController {
     }
 
     @GetMapping("/{compId}")
-    public CompilationDto getCompilationById(@PathVariable Long compId) {
+    public CompilationDto getCompilationById(@PathVariable @Positive Long compId) { // Добавлена валидация
         return compilationService.getCompilationById(compId);
     }
 }
