@@ -94,6 +94,7 @@ public class EventServiceImpl implements EventService {
             throw new ConflictException("Нельзя изменить опубликованное событие");
         }
 
+        updateEventFields(event, update);
         if (update.getUserStateAction() != null) {
             if (update.getUserStateAction() == UserStateAction.SEND_TO_REVIEW) {
                 event.setState(EventState.PENDING);
@@ -101,8 +102,6 @@ public class EventServiceImpl implements EventService {
                 event.setState(EventState.CANCELED);
             }
         }
-
-        updateEventFields(event, update);
 
         return EventMapper.toEventFullDto(eventRepository.save(event));
     }
@@ -162,21 +161,37 @@ public class EventServiceImpl implements EventService {
         if (!event.getState().equals(EventState.PUBLISHED)) {
             throw new NotFoundException("Событие еще не опубликовано");
         }
+
         statsClient.addHit(EndpointHitDto.builder()
                 .app("ewm-main-service")
                 .uri(request.getRequestURI())
                 .ip(request.getRemoteAddr())
                 .timestamp(LocalDateTime.now().format(formatter))
                 .build());
-        Object statsResponse = statsClient.getStats(
-                "2000-01-01 00:00:00",
-                LocalDateTime.now().format(formatter),
-                new String[]{request.getRequestURI()},
-                true);
-        List<ViewStatsDto> statsList = objectMapper.convertValue(statsResponse, new TypeReference<List<ViewStatsDto>>() {
-        });
+
+        List<ViewStatsDto> statsList = Collections.emptyList();
+        try {
+            Object statsResponse = statsClient.getStats(
+                    "2000-01-01 00:00:00",
+                    LocalDateTime.now().format(formatter),
+                    new String[]{request.getRequestURI()},
+                    true);
+
+            if (statsResponse != null) {
+                statsList = objectMapper.convertValue(statsResponse, new TypeReference<List<ViewStatsDto>>() {
+                });
+            }
+        } catch (Exception e) {
+            System.err.println("Ошибка при получении статистики: " + e.getMessage());
+        }
+
         EventFullDto dto = EventMapper.toEventFullDto(event);
-        long views = statsList.isEmpty() ? 0L : statsList.get(0).getHits();
+        long views = statsList.stream()
+                .filter(stats -> stats.getUri().equals(request.getRequestURI()))
+                .mapToLong(ViewStatsDto::getHits)
+                .findFirst()
+                .orElse(0L);
+
         dto.setViews(views);
         dto.setConfirmedRequests(getConfirmedRequests(eventId));
 
