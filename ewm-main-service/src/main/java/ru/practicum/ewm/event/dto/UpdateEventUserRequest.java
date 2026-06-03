@@ -14,13 +14,13 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UpdateEventUserRequest {
-    @Size(min = 3, max = 120)
+    @Size(max = 120)
     private String title;
 
-    @Size(min = 20, max = 2000)
+    @Size(max = 2000)
     private String annotation;
 
-    @Size(min = 20, max = 7000)
+    @Size(max = 7000)
     private String description;
 
     private Long category;
