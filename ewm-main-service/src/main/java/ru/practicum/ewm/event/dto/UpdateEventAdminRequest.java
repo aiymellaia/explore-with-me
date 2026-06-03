@@ -1,7 +1,6 @@
 package ru.practicum.ewm.event.dto;
 
 import jakarta.validation.constraints.PositiveOrZero;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 import ru.practicum.ewm.event.model.AdminStateAction;
 
@@ -12,13 +11,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UpdateEventAdminRequest {
-    @Size(max = 120)
     private String title;
-
-    @Size(max = 2000)
     private String annotation;
-
-    @Size(max = 7000)
     private String description;
 
     private Long category;
