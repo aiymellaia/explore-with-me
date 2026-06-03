@@ -94,21 +94,19 @@ public class EventServiceImpl implements EventService {
             throw new ConflictException("Нельзя изменить опубликованное событие");
         }
 
-        // 1. СНАЧАЛА меняем статус, если пришел запрос на изменение
         if (update.getUserStateAction() != null) {
             if (update.getUserStateAction() == UserStateAction.SEND_TO_REVIEW) {
-                // Можно перевести в PENDING, только если оно было CANCELED
-                // (или PENDING, если логика позволяет)
                 event.setState(EventState.PENDING);
             } else if (update.getUserStateAction() == UserStateAction.CANCEL_REVIEW) {
                 event.setState(EventState.CANCELED);
             }
+        } else {
+            if (event.getState().equals(EventState.CANCELED)) {
+                event.setState(EventState.PENDING);
+            }
         }
 
-        // 2. ПОТОМ обновляем поля
-        // Теперь даже если валидация полей упадет, статус уже сохранен в объекте (в памяти)
         updateEventFields(event, update);
-
         return EventMapper.toEventFullDto(eventRepository.save(event));
     }
 
