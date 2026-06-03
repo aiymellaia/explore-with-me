@@ -345,13 +345,8 @@ public class EventServiceImpl implements EventService {
                         : LocalDateTime.now().plusHours(2);
 
                 if (eventDate.isBefore(minAllowedDate)) {
-                    String message = "Дата начала события должна быть не раньше чем через "
-                            + (isAdmin ? "час" : "два часа") + " от текущего момента";
-                    if (isUpdate) {
-                        throw new ConflictException(message);
-                    } else {
-                        throw new ValidationException(message);
-                    }
+                    throw new ValidationException("Дата начала события должна быть не раньше чем через "
+                            + (isAdmin ? "час" : "два часа") + " от текущего момента");
                 }
                 event.setEventDate(eventDate);
             }
