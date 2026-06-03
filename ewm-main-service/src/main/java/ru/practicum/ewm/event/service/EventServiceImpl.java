@@ -216,7 +216,7 @@ public class EventServiceImpl implements EventService {
         }
 
         if (rangeStart != null && rangeEnd != null && rangeStart.isAfter(rangeEnd)) {
-            throw new ValidationException("Дата начала не может быть позже даты окончания");
+            return Collections.emptyList();
         }
 
         statsClient.addHit(EndpointHitDto.builder()
