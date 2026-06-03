@@ -67,10 +67,6 @@ public class EventSpecification {
                 predicates.add(cb.lessThanOrEqualTo(root.get("eventDate"), rangeEnd));
             }
 
-            if (rangeStart == null && rangeEnd == null) {
-                predicates.add(cb.greaterThan(root.get("eventDate"), LocalDateTime.now()));
-            }
-
             return cb.and(predicates.toArray(new Predicate[0]));
         };
     }

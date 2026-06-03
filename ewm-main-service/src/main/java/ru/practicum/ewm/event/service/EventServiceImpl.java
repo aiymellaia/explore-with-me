@@ -211,12 +211,12 @@ public class EventServiceImpl implements EventService {
             throw new ValidationException("Параметры from и size должны быть положительными");
         }
 
-        if (rangeStart == null && rangeEnd == null) {
+        if (rangeStart == null) {
             rangeStart = LocalDateTime.now();
         }
 
         if (rangeStart != null && rangeEnd != null && rangeStart.isAfter(rangeEnd)) {
-            return Collections.emptyList();
+            throw new ValidationException("Дата начала не может быть позже даты окончания");
         }
 
         statsClient.addHit(EndpointHitDto.builder()
