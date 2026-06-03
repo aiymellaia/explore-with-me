@@ -12,8 +12,8 @@ import ru.practicum.stats.service.StatsService;
 
 import java.nio.charset.StandardCharsets;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(StatsController.class)
@@ -55,5 +55,14 @@ public class StatsControllerTest {
                         .param("end", "2022-09-06 12:00:00")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void getStats_shouldReturn400_whenStartIsAfterEnd() throws Exception {
+        mvc.perform(get("/stats")
+                        .param("start", "2035-05-05 00:00:00")
+                        .param("end", "2020-05-05 00:00:00")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest()); // Тест ожидает 400
     }
 }
