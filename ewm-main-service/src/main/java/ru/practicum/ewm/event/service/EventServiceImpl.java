@@ -17,6 +17,7 @@ import ru.practicum.ewm.event.mapper.EventMapper;
 import ru.practicum.ewm.event.model.AdminStateAction;
 import ru.practicum.ewm.event.model.Event;
 import ru.practicum.ewm.event.model.EventState;
+import ru.practicum.ewm.event.model.UserStateAction;
 import ru.practicum.ewm.event.repository.EventRepository;
 import ru.practicum.ewm.event.repository.EventSpecification;
 import ru.practicum.ewm.exception.ConflictException;
@@ -26,7 +27,6 @@ import ru.practicum.ewm.request.model.RequestStatus;
 import ru.practicum.ewm.request.repository.RequestRepository;
 import ru.practicum.ewm.user.model.User;
 import ru.practicum.ewm.user.repository.UserRepository;
-import ru.practicum.ewm.event.model.UserStateAction;
 import ru.practicum.ewm.utils.OffsetBasedPageRequest;
 
 import java.time.LocalDateTime;
@@ -316,13 +316,28 @@ public class EventServiceImpl implements EventService {
                                    Integer participantLimit, Boolean requestModeration, Long catId,
                                    boolean isAdmin) {
 
-        // Используем простой null-check. Если пришло null, мы не трогаем поле.
-        if (title != null) event.setTitle(title);
-        if (annotation != null) event.setAnnotation(annotation);
-        if (description != null) event.setDescription(description);
+        if (title != null) {
+            if (title.length() < 3 || title.length() > 120) {
+                throw new ValidationException("Длина заголовка должна быть от 3 до 120 символов");
+            }
+            event.setTitle(title);
+        }
+
+        if (annotation != null) {
+            if (annotation.length() < 20 || annotation.length() > 2000) {
+                throw new ValidationException("Длина аннотации должна быть от 20 до 2000 символов");
+            }
+            event.setAnnotation(annotation);
+        }
+
+        if (description != null) {
+            if (description.length() < 20 || description.length() > 7000) {
+                throw new ValidationException("Длина описания должна быть от 20 до 7000 символов");
+            }
+            event.setDescription(description);
+        }
 
         if (eventDate != null) {
-            // Проверяем дату только если она изменилась
             if (!eventDate.equals(event.getEventDate())) {
                 LocalDateTime minAllowedDate = isAdmin ? LocalDateTime.now().plusHours(1)
                         : LocalDateTime.now().plusHours(2);

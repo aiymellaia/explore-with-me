@@ -1,10 +1,12 @@
 package ru.practicum.ewm.event.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.*;
+import lombok.NoArgsConstructor;
 import ru.practicum.ewm.event.model.UserStateAction;
 
 import java.time.LocalDateTime;
@@ -25,6 +27,7 @@ public class UpdateEventUserRequest {
 
     private Long category;
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime eventDate;
 
     private LocationDto location;
