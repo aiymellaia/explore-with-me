@@ -35,6 +35,10 @@ public class PublicEventController {
             @RequestParam(defaultValue = "10") @Positive Integer size,
             HttpServletRequest request) {
 
+        if (rangeStart != null && rangeEnd != null && rangeStart.isAfter(rangeEnd)) {
+            throw new ru.practicum.ewm.exception.ValidationException("Start date must be before end date");
+        }
+
         return eventService.getEvents(
                 text,
                 categories,

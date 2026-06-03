@@ -31,6 +31,7 @@ import ru.practicum.ewm.utils.OffsetBasedPageRequest;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -93,8 +94,6 @@ public class EventServiceImpl implements EventService {
             throw new ConflictException("Нельзя изменить опубликованное событие");
         }
 
-        updateEventFields(event, update);
-
         if (update.getUserStateAction() != null) {
             if (update.getUserStateAction() == UserStateAction.SEND_TO_REVIEW) {
                 event.setState(EventState.PENDING);
@@ -102,6 +101,9 @@ public class EventServiceImpl implements EventService {
                 event.setState(EventState.CANCELED);
             }
         }
+
+        updateEventFields(event, update);
+
         return EventMapper.toEventFullDto(eventRepository.save(event));
     }
 
@@ -190,6 +192,10 @@ public class EventServiceImpl implements EventService {
             throw new ValidationException("Параметры from и size должны быть положительными");
         }
 
+        if (rangeStart == null && rangeEnd == null) {
+            rangeStart = LocalDateTime.now();
+        }
+
         if (rangeStart != null && rangeEnd != null && rangeStart.isAfter(rangeEnd)) {
             throw new ValidationException("Дата начала не может быть позже даты окончания");
         }
@@ -206,18 +212,14 @@ public class EventServiceImpl implements EventService {
                 new OffsetBasedPageRequest(from, size, Sort.unsorted())
         ).getContent();
 
-        List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
+        if (events.isEmpty()) {
+            return Collections.emptyList();
+        }
 
+        List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
         Map<Long, Long> confirmedMap = requestRepository.findAllByEventIdInAndStatus(eventIds, RequestStatus.CONFIRMED)
                 .stream()
                 .collect(Collectors.groupingBy(r -> r.getEvent().getId(), Collectors.counting()));
-
-        if (Boolean.TRUE.equals(onlyAvailable)) {
-            events = events.stream()
-                    .filter(e -> e.getParticipantLimit() == 0 ||
-                            e.getParticipantLimit() > confirmedMap.getOrDefault(e.getId(), 0L))
-                    .collect(Collectors.toList());
-        }
 
         List<EventShortDto> result = events.stream()
                 .map(event -> {
@@ -227,21 +229,22 @@ public class EventServiceImpl implements EventService {
                 })
                 .collect(Collectors.toList());
 
-        if ("VIEWS".equals(sort) && !result.isEmpty()) {
+        if ("VIEWS".equals(sort)) {
             String[] uris = result.stream()
                     .map(dto -> "/events/" + dto.getId())
                     .toArray(String[]::new);
 
             Object statsResponse = statsClient.getStats("2000-01-01 00:00:00", "2100-01-01 00:00:00", uris, true);
-            List<ViewStatsDto> statsList = objectMapper.convertValue(statsResponse, new TypeReference<List<ViewStatsDto>>() {
-            });
 
-            Map<String, Long> statsMap = statsList.stream()
-                    .collect(Collectors.toMap(ViewStatsDto::getUri, ViewStatsDto::getHits));
-
-            result.forEach(dto -> dto.setViews(statsMap.getOrDefault("/events/" + dto.getId(), 0L)));
-
+            if (statsResponse != null) {
+                List<ViewStatsDto> statsList = objectMapper.convertValue(statsResponse, new TypeReference<List<ViewStatsDto>>() {
+                });
+                Map<String, Long> statsMap = statsList.stream()
+                        .collect(Collectors.toMap(ViewStatsDto::getUri, ViewStatsDto::getHits));
+                result.forEach(dto -> dto.setViews(statsMap.getOrDefault("/events/" + dto.getId(), 0L)));
+            }
             result.sort(Comparator.comparing(EventShortDto::getViews).reversed());
+
         } else if ("EVENT_DATE".equals(sort)) {
             result.sort(Comparator.comparing(EventShortDto::getEventDate));
         }
