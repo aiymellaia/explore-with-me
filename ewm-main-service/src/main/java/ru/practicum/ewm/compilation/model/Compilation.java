@@ -20,14 +20,14 @@ public class Compilation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private String title;
 
     @Builder.Default
     @Column(nullable = false)
     private Boolean pinned = false;
 
-    @Builder.Default // Обязательно для корректной работы Builder
+    @Builder.Default
     @ManyToMany
     @JoinTable(
             name = "compilation_events",
