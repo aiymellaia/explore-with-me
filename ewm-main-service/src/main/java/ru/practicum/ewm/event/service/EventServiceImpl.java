@@ -147,10 +147,25 @@ public class EventServiceImpl implements EventService {
             throw new ValidationException("Дата начала не может быть позже даты окончания");
         }
 
-        return eventRepository.findAll(EventSpecification.filterEvents(users, states, categories, rangeStart, rangeEnd),
-                        new OffsetBasedPageRequest(from, size, Sort.unsorted()))
+        List<Event> events = eventRepository.findAll(
+                EventSpecification.filterEvents(users, states, categories, rangeStart, rangeEnd),
+                new OffsetBasedPageRequest(from, size, Sort.unsorted())
+        ).getContent();
+
+        if (events.isEmpty()) return Collections.emptyList();
+
+        List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
+
+        Map<Long, Long> confirmedMap = requestRepository.findAllByEventIdInAndStatus(eventIds, RequestStatus.CONFIRMED)
                 .stream()
-                .map(EventMapper::toEventFullDto)
+                .collect(Collectors.groupingBy(r -> r.getEvent().getId(), Collectors.counting()));
+
+        return events.stream()
+                .map(event -> {
+                    EventFullDto dto = EventMapper.toEventFullDto(event);
+                    dto.setConfirmedRequests(confirmedMap.getOrDefault(event.getId(), 0L));
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
