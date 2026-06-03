@@ -1,6 +1,7 @@
 package ru.practicum.ewm.event.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -39,5 +40,6 @@ public class UpdateEventUserRequest {
 
     private Boolean requestModeration;
 
+    @JsonProperty("stateAction")
     private UserStateAction userStateAction;
 }

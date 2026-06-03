@@ -86,7 +86,6 @@ public class EventServiceImpl implements EventService {
     public EventFullDto updateEvent(Long userId, Long eventId, UpdateEventUserRequest update) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Событие не найдено"));
-
         if (!event.getInitiator().getId().equals(userId)) {
             throw new ValidationException("Редактировать можно только свои события");
         }
@@ -94,19 +93,18 @@ public class EventServiceImpl implements EventService {
             throw new ConflictException("Нельзя изменить опубликованное событие");
         }
 
+        updateEventFields(event, update);
+
         if (update.getUserStateAction() != null) {
             if (update.getUserStateAction() == UserStateAction.SEND_TO_REVIEW) {
                 event.setState(EventState.PENDING);
             } else if (update.getUserStateAction() == UserStateAction.CANCEL_REVIEW) {
                 event.setState(EventState.CANCELED);
             }
-        } else {
-            if (event.getState().equals(EventState.CANCELED)) {
-                event.setState(EventState.PENDING);
-            }
+        } else if (event.getState().equals(EventState.CANCELED)) {
+            event.setState(EventState.PENDING);
         }
 
-        updateEventFields(event, update);
         return EventMapper.toEventFullDto(eventRepository.save(event));
     }
 
