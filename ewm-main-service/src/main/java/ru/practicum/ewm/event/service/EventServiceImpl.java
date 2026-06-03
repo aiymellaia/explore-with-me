@@ -303,18 +303,20 @@ public class EventServiceImpl implements EventService {
         if (dto instanceof UpdateEventUserRequest u) {
             applyCommonFields(event, u.getTitle(), u.getAnnotation(), u.getDescription(),
                     u.getEventDate(), u.getLocation(), u.getPaid(),
-                    u.getParticipantLimit(), u.getRequestModeration(), u.getCategory(), false);
+                    u.getParticipantLimit(), u.getRequestModeration(), u.getCategory(),
+                    false, true); // isAdmin=false, isUpdate=true
         } else if (dto instanceof UpdateEventAdminRequest u) {
             applyCommonFields(event, u.getTitle(), u.getAnnotation(), u.getDescription(),
                     u.getEventDate(), u.getLocation(), u.getPaid(),
-                    u.getParticipantLimit(), u.getRequestModeration(), u.getCategory(), true);
+                    u.getParticipantLimit(), u.getRequestModeration(), u.getCategory(),
+                    true, true); // isAdmin=true, isUpdate=true
         }
     }
 
     private void applyCommonFields(Event event, String title, String annotation, String description,
                                    LocalDateTime eventDate, LocationDto location, Boolean paid,
                                    Integer participantLimit, Boolean requestModeration, Long catId,
-                                   boolean isAdmin) {
+                                   boolean isAdmin, boolean isUpdate) {
 
         if (title != null) {
             if (title.length() < 3 || title.length() > 120) {
@@ -343,8 +345,13 @@ public class EventServiceImpl implements EventService {
                         : LocalDateTime.now().plusHours(2);
 
                 if (eventDate.isBefore(minAllowedDate)) {
-                    throw new ConflictException("Дата начала события должна быть не раньше чем через "
-                            + (isAdmin ? "час" : "два часа") + " от текущего момента");
+                    String message = "Дата начала события должна быть не раньше чем через "
+                            + (isAdmin ? "час" : "два часа") + " от текущего момента";
+                    if (isUpdate) {
+                        throw new ConflictException(message);
+                    } else {
+                        throw new ValidationException(message);
+                    }
                 }
                 event.setEventDate(eventDate);
             }
