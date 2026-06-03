@@ -82,17 +82,19 @@ public class CompilationServiceImpl implements CompilationService {
         List<Compilation> compilations;
 
         if (pinned != null) {
-            compilations = compilationRepository.findByPinned(pinned, page);
+            compilations = compilationRepository.findByPinnedWithEvents(pinned, page);
         } else {
-            compilations = compilationRepository.findAll(page).getContent();
+            compilations = compilationRepository.findAllWithEvents(page);
         }
 
-        return compilations.stream().map(CompilationMapper::toDto).collect(Collectors.toList());
+        return compilations.stream()
+                .map(CompilationMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override
     public CompilationDto getCompilationById(Long compId) {
-        Compilation compilation = compilationRepository.findById(compId)
+        Compilation compilation = compilationRepository.findByIdWithEvents(compId)
                 .orElseThrow(() -> new NotFoundException("Compilation not found"));
         return CompilationMapper.toDto(compilation);
     }

@@ -94,14 +94,20 @@ public class EventServiceImpl implements EventService {
             throw new ConflictException("Нельзя изменить опубликованное событие");
         }
 
-        updateEventFields(event, update);
+        // 1. СНАЧАЛА меняем статус, если пришел запрос на изменение
         if (update.getUserStateAction() != null) {
             if (update.getUserStateAction() == UserStateAction.SEND_TO_REVIEW) {
+                // Можно перевести в PENDING, только если оно было CANCELED
+                // (или PENDING, если логика позволяет)
                 event.setState(EventState.PENDING);
             } else if (update.getUserStateAction() == UserStateAction.CANCEL_REVIEW) {
                 event.setState(EventState.CANCELED);
             }
         }
+
+        // 2. ПОТОМ обновляем поля
+        // Теперь даже если валидация полей упадет, статус уже сохранен в объекте (в памяти)
+        updateEventFields(event, update);
 
         return EventMapper.toEventFullDto(eventRepository.save(event));
     }
@@ -310,19 +316,23 @@ public class EventServiceImpl implements EventService {
                                    Integer participantLimit, Boolean requestModeration, Long catId,
                                    boolean isAdmin) {
 
-        if (title != null && !title.isBlank()) event.setTitle(title);
-        if (annotation != null && !annotation.isBlank()) event.setAnnotation(annotation);
-        if (description != null && !description.isBlank()) event.setDescription(description);
+        // Используем простой null-check. Если пришло null, мы не трогаем поле.
+        if (title != null) event.setTitle(title);
+        if (annotation != null) event.setAnnotation(annotation);
+        if (description != null) event.setDescription(description);
 
         if (eventDate != null) {
-            LocalDateTime minAllowedDate = isAdmin ? LocalDateTime.now().plusHours(1)
-                    : LocalDateTime.now().plusHours(2);
+            // Проверяем дату только если она изменилась
+            if (!eventDate.equals(event.getEventDate())) {
+                LocalDateTime minAllowedDate = isAdmin ? LocalDateTime.now().plusHours(1)
+                        : LocalDateTime.now().plusHours(2);
 
-            if (eventDate.isBefore(minAllowedDate)) {
-                throw new ConflictException("Дата начала события должна быть не раньше чем через "
-                        + (isAdmin ? "час" : "два часа") + " от текущего момента");
+                if (eventDate.isBefore(minAllowedDate)) {
+                    throw new ConflictException("Дата начала события должна быть не раньше чем через "
+                            + (isAdmin ? "час" : "два часа") + " от текущего момента");
+                }
+                event.setEventDate(eventDate);
             }
-            event.setEventDate(eventDate);
         }
 
         if (location != null) {
