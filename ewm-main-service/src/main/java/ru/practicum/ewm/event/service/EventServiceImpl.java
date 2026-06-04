@@ -14,10 +14,7 @@ import ru.practicum.ewm.category.model.Category;
 import ru.practicum.ewm.category.repository.CategoryRepository;
 import ru.practicum.ewm.event.dto.*;
 import ru.practicum.ewm.event.mapper.EventMapper;
-import ru.practicum.ewm.event.model.AdminStateAction;
-import ru.practicum.ewm.event.model.Event;
-import ru.practicum.ewm.event.model.EventState;
-import ru.practicum.ewm.event.model.UserStateAction;
+import ru.practicum.ewm.event.model.*;
 import ru.practicum.ewm.event.repository.EventRepository;
 import ru.practicum.ewm.event.repository.EventSpecification;
 import ru.practicum.ewm.exception.ConflictException;
@@ -48,6 +45,7 @@ public class EventServiceImpl implements EventService {
     private final RequestRepository requestRepository;
     private final ObjectMapper objectMapper;
 
+    private static final String APP_NAME = "ewm-main-service";
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Override
@@ -69,8 +67,10 @@ public class EventServiceImpl implements EventService {
                 .category(category)
                 .initiator(user)
                 .eventDate(newEventDto.getEventDate())
-                .lat(newEventDto.getLocation().getLat())
-                .lon(newEventDto.getLocation().getLon())
+                .location(new Location(
+                        newEventDto.getLocation().getLat(),
+                        newEventDto.getLocation().getLon()
+                ))
                 .paid(newEventDto.getPaid() != null && newEventDto.getPaid())
                 .participantLimit(newEventDto.getParticipantLimit() == null ? 0 : newEventDto.getParticipantLimit())
                 .requestModeration(newEventDto.getRequestModeration() == null || newEventDto.getRequestModeration())
@@ -155,15 +155,24 @@ public class EventServiceImpl implements EventService {
         if (events.isEmpty()) return Collections.emptyList();
 
         List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
-
         Map<Long, Long> confirmedMap = requestRepository.findAllByEventIdInAndStatus(eventIds, RequestStatus.CONFIRMED)
                 .stream()
                 .collect(Collectors.groupingBy(r -> r.getEvent().getId(), Collectors.counting()));
+
+        String[] uris = eventIds.stream().map(id -> "/events/" + id).toArray(String[]::new);
+
+        String start = events.stream()
+                .map(this::getStartDateTimeForStats)
+                .min(String::compareTo)
+                .orElse(LocalDateTime.now().format(formatter));
+
+        Map<String, Long> viewsMap = getStatsMap(start, LocalDateTime.now().format(formatter), uris);
 
         return events.stream()
                 .map(event -> {
                     EventFullDto dto = EventMapper.toEventFullDto(event);
                     dto.setConfirmedRequests(confirmedMap.getOrDefault(event.getId(), 0L));
+                    dto.setViews(viewsMap.getOrDefault("/events/" + event.getId(), 0L));
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -180,7 +189,7 @@ public class EventServiceImpl implements EventService {
         }
 
         statsClient.addHit(EndpointHitDto.builder()
-                .app("ewm-main-service")
+                .app(APP_NAME)
                 .uri(request.getRequestURI())
                 .ip(request.getRemoteAddr())
                 .timestamp(LocalDateTime.now().format(formatter))
@@ -188,9 +197,12 @@ public class EventServiceImpl implements EventService {
 
         List<ViewStatsDto> statsList = Collections.emptyList();
         try {
+            String start = getStartDateTimeForStats(event);
+            String end = LocalDateTime.now().format(formatter);
+
             Object statsResponse = statsClient.getStats(
-                    "2000-01-01 00:00:00",
-                    LocalDateTime.now().format(formatter),
+                    start,
+                    end,
                     new String[]{request.getRequestURI()},
                     true);
 
@@ -233,7 +245,7 @@ public class EventServiceImpl implements EventService {
         }
 
         statsClient.addHit(EndpointHitDto.builder()
-                .app("ewm-main-service")
+                .app(APP_NAME)
                 .uri(request.getRequestURI())
                 .ip(request.getRemoteAddr())
                 .timestamp(LocalDateTime.now().format(formatter))
@@ -261,20 +273,15 @@ public class EventServiceImpl implements EventService {
                 })
                 .collect(Collectors.toList());
 
+        String[] uris = result.stream().map(dto -> "/events/" + dto.getId()).toArray(String[]::new);
+        String start = getMinStartDateTimeForStats(events);
+        String end = LocalDateTime.now().format(formatter);
+
+        Map<String, Long> viewsMap = getStatsMap(start, end, uris);
+
+        result.forEach(dto -> dto.setViews(viewsMap.getOrDefault("/events/" + dto.getId(), 0L)));
+
         if ("VIEWS".equals(sort)) {
-            String[] uris = result.stream()
-                    .map(dto -> "/events/" + dto.getId())
-                    .toArray(String[]::new);
-
-            Object statsResponse = statsClient.getStats("2000-01-01 00:00:00", "2100-01-01 00:00:00", uris, true);
-
-            if (statsResponse != null) {
-                List<ViewStatsDto> statsList = objectMapper.convertValue(statsResponse, new TypeReference<List<ViewStatsDto>>() {
-                });
-                Map<String, Long> statsMap = statsList.stream()
-                        .collect(Collectors.toMap(ViewStatsDto::getUri, ViewStatsDto::getHits));
-                result.forEach(dto -> dto.setViews(statsMap.getOrDefault("/events/" + dto.getId(), 0L)));
-            }
             result.sort(Comparator.comparing(EventShortDto::getViews).reversed());
 
         } else if ("EVENT_DATE".equals(sort)) {
@@ -310,70 +317,92 @@ public class EventServiceImpl implements EventService {
         return EventMapper.toEventFullDto(event);
     }
 
-    private void updateEventFields(Event event, Object dto) {
-        if (dto instanceof UpdateEventUserRequest u) {
-            applyCommonFields(event, u.getTitle(), u.getAnnotation(), u.getDescription(),
-                    u.getEventDate(), u.getLocation(), u.getPaid(),
-                    u.getParticipantLimit(), u.getRequestModeration(), u.getCategory(),
-                    false, true); // isAdmin=false, isUpdate=true
-        } else if (dto instanceof UpdateEventAdminRequest u) {
-            applyCommonFields(event, u.getTitle(), u.getAnnotation(), u.getDescription(),
-                    u.getEventDate(), u.getLocation(), u.getPaid(),
-                    u.getParticipantLimit(), u.getRequestModeration(), u.getCategory(),
-                    true, true); // isAdmin=true, isUpdate=true
+    private String getStartDateTimeForStats(Event event) {
+        if (event.getPublishedOn() != null) {
+            return event.getPublishedOn().format(formatter);
         }
+        return event.getCreatedOn().format(formatter);
     }
 
-    private void applyCommonFields(Event event, String title, String annotation, String description,
-                                   LocalDateTime eventDate, LocationDto location, Boolean paid,
-                                   Integer participantLimit, Boolean requestModeration, Long catId,
-                                   boolean isAdmin, boolean isUpdate) {
+    private String getMinStartDateTimeForStats(List<Event> events) {
+        return events.stream()
+                .map(this::getStartDateTimeForStats)
+                .min(String::compareTo)
+                .orElse(LocalDateTime.now().format(formatter));
+    }
 
-        if (title != null) {
-            if (title.length() < 3 || title.length() > 120) {
+    private Map<String, Long> getStatsMap(String start, String end, String[] uris) {
+        try {
+            Object statsResponse = statsClient.getStats(start, end, uris, true);
+            if (statsResponse != null) {
+                List<ViewStatsDto> statsList = objectMapper.convertValue(statsResponse, new TypeReference<>() {
+                });
+                return statsList.stream()
+                        .collect(Collectors.toMap(ViewStatsDto::getUri, ViewStatsDto::getHits));
+            }
+        } catch (Exception e) {
+            System.err.println("Ошибка при получении статистики: " + e.getMessage());
+        }
+        return Collections.emptyMap();
+    }
+
+    private void updateEventFields(Event event, UpdateEventRequest update) {
+        boolean isAdmin = (update instanceof UpdateEventAdminRequest);
+        applyCommonFields(event, update, isAdmin);
+    }
+
+    private void applyCommonFields(Event event, UpdateEventRequest update, boolean isAdmin) {
+
+        if (update.getTitle() != null) {
+            if (update.getTitle().length() < 3 || update.getTitle().length() > 120) {
                 throw new ValidationException("Длина заголовка должна быть от 3 до 120 символов");
             }
-            event.setTitle(title);
+            event.setTitle(update.getTitle());
         }
 
-        if (annotation != null) {
-            if (annotation.length() < 20 || annotation.length() > 2000) {
+        if (update.getAnnotation() != null) {
+            if (update.getAnnotation().length() < 20 || update.getAnnotation().length() > 2000) {
                 throw new ValidationException("Длина аннотации должна быть от 20 до 2000 символов");
             }
-            event.setAnnotation(annotation);
+            event.setAnnotation(update.getAnnotation());
         }
 
-        if (description != null) {
-            if (description.length() < 20 || description.length() > 7000) {
+        if (update.getDescription() != null) {
+            if (update.getDescription().length() < 20 || update.getDescription().length() > 7000) {
                 throw new ValidationException("Длина описания должна быть от 20 до 7000 символов");
             }
-            event.setDescription(description);
+            event.setDescription(update.getDescription());
         }
 
-        if (eventDate != null) {
-            if (!eventDate.equals(event.getEventDate())) {
-                LocalDateTime minAllowedDate = isAdmin ? LocalDateTime.now().plusHours(1)
-                        : LocalDateTime.now().plusHours(2);
+        if (update.getEventDate() != null) {
+            // Убрали лишний параметр isUpdate, так как метод вызывается только при обновлении
+            LocalDateTime minAllowedDate = isAdmin ? LocalDateTime.now().plusHours(1)
+                    : LocalDateTime.now().plusHours(2);
 
-                if (eventDate.isBefore(minAllowedDate)) {
-                    throw new ValidationException("Дата начала события должна быть не раньше чем через "
-                            + (isAdmin ? "час" : "два часа") + " от текущего момента");
-                }
-                event.setEventDate(eventDate);
+            if (update.getEventDate().isBefore(minAllowedDate)) {
+                throw new ValidationException("Дата начала события должна быть не раньше чем через "
+                        + (isAdmin ? "час" : "два часа") + " от текущего момента");
+            }
+            event.setEventDate(update.getEventDate());
+        }
+
+        if (update.getLocation() != null) {
+            LocationDto loc = update.getLocation();
+            if (event.getLocation() == null) {
+                event.setLocation(new Location(loc.getLat(), loc.getLon()));
+            } else {
+                event.getLocation().setLat(loc.getLat());
+                event.getLocation().setLon(loc.getLon());
             }
         }
 
-        if (location != null) {
-            event.setLat(location.getLat());
-            event.setLon(location.getLon());
-        }
-        if (paid != null) event.setPaid(paid);
-        if (participantLimit != null) event.setParticipantLimit(participantLimit);
-        if (requestModeration != null) event.setRequestModeration(requestModeration);
+        if (update.getPaid() != null) event.setPaid(update.getPaid());
+        if (update.getParticipantLimit() != null) event.setParticipantLimit(update.getParticipantLimit());
+        if (update.getRequestModeration() != null) event.setRequestModeration(update.getRequestModeration());
 
-        if (catId != null) {
-            Category newCategory = categoryRepository.findById(catId)
-                    .orElseThrow(() -> new NotFoundException("Категория с id=" + catId + " не найдена"));
+        if (update.getCategory() != null) {
+            Category newCategory = categoryRepository.findById(update.getCategory())
+                    .orElseThrow(() -> new NotFoundException("Категория с id=" + update.getCategory() + " не найдена"));
             event.setCategory(newCategory);
         }
     }

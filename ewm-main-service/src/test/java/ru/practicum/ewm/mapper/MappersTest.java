@@ -12,6 +12,7 @@ import ru.practicum.ewm.event.dto.EventFullDto;
 import ru.practicum.ewm.event.dto.EventShortDto;
 import ru.practicum.ewm.event.mapper.EventMapper;
 import ru.practicum.ewm.event.model.Event;
+import ru.practicum.ewm.event.model.Location;
 import ru.practicum.ewm.request.dto.EventRequestStatusUpdateResult;
 import ru.practicum.ewm.request.dto.ParticipationRequestDto;
 import ru.practicum.ewm.request.mapper.RequestMapper;
@@ -25,7 +26,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MappersTest {
 
@@ -114,8 +116,7 @@ class MappersTest {
                 .category(category)
                 .initiator(initiator)
                 .eventDate(LocalDateTime.now())
-                .lat(55.75f)
-                .lon(37.61f)
+                .location(new Location(55.75f, 37.61f))
                 .paid(true)
                 .participantLimit(100)
                 .build();
@@ -124,7 +125,7 @@ class MappersTest {
         assertEquals(event.getTitle(), fullDto.getTitle());
         assertEquals(event.getCategory().getName(), fullDto.getCategory().getName());
         assertEquals(event.getInitiator().getName(), fullDto.getInitiator().getName());
-        assertEquals(event.getLat(), fullDto.getLocation().getLat());
+        assertEquals(event.getLocation().getLat(), fullDto.getLocation().getLat());
 
         EventShortDto shortDto = EventMapper.toEventShortDto(event);
         assertEquals(event.getTitle(), shortDto.getTitle());

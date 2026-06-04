@@ -39,11 +39,8 @@ public class Event {
     @JoinColumn(name = "initiator_id")
     private User initiator;
 
-    @Builder.Default
-    private Float lat = 0.0f;
-
-    @Builder.Default
-    private Float lon = 0.0f;
+    @Embedded
+    private Location location;
 
     @Builder.Default
     private Boolean paid = false;

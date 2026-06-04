@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class UpdateEventUserRequest {
+public class UpdateEventUserRequest implements UpdateEventRequest {
     @Size(max = 120)
     private String title;
 

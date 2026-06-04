@@ -16,7 +16,7 @@ public class EventMapper {
                 .category(CategoryMapper.toCategoryDto(event.getCategory()))
                 .initiator(UserMapper.toUserShortDto(event.getInitiator()))
                 .eventDate(event.getEventDate())
-                .location(new LocationDto(event.getLat(), event.getLon()))
+                .location(new LocationDto(event.getLocation().getLat(), event.getLocation().getLon()))
                 .paid(event.getPaid())
                 .participantLimit(event.getParticipantLimit())
                 .createdOn(event.getCreatedOn())

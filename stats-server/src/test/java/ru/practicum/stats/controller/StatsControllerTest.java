@@ -29,12 +29,13 @@ public class StatsControllerTest {
     private StatsService statsService;
 
     private final String timestamp = "2022-09-06 11:00:23";
+    private static final String APP_NAME = "ewm-main-service";
 
     @Test
     void addHit_shouldReturn201() throws Exception {
         EndpointHitDto hitDto = new EndpointHitDto(
                 0L,
-                "ewm-main-service",
+                APP_NAME,
                 "/events/1",
                 "192.163.0.1",
                 timestamp
