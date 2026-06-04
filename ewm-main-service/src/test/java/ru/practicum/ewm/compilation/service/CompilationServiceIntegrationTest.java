@@ -12,6 +12,7 @@ import ru.practicum.ewm.compilation.dto.CompilationDto;
 import ru.practicum.ewm.compilation.dto.NewCompilationDto;
 import ru.practicum.ewm.compilation.dto.UpdateCompilationRequest;
 import ru.practicum.ewm.event.model.Event;
+import ru.practicum.ewm.event.model.Location;
 import ru.practicum.ewm.event.repository.EventRepository;
 import ru.practicum.ewm.user.model.User;
 import ru.practicum.ewm.user.repository.UserRepository;
@@ -51,6 +52,7 @@ class CompilationServiceIntegrationTest {
                 .eventDate(LocalDateTime.now().plusDays(1))
                 .category(category)
                 .initiator(initiator)
+                .location(new Location(55.75f, 37.61f))
                 .build());
     }
 

@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.category.dto.CategoryDto;
 import ru.practicum.ewm.category.repository.CategoryRepository;
 import ru.practicum.ewm.event.model.Event;
+import ru.practicum.ewm.event.model.Location;
 import ru.practicum.ewm.event.repository.EventRepository;
 import ru.practicum.ewm.exception.ConflictException;
 import ru.practicum.ewm.user.model.User;
@@ -15,7 +16,8 @@ import ru.practicum.ewm.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @Transactional
@@ -49,6 +51,7 @@ class CategoryServiceIntegrationTest {
                 .eventDate(LocalDateTime.now().plusDays(1))
                 .category(categoryRepository.findById(savedCategory.getId()).get())
                 .initiator(initiator)
+                .location(new Location(55.75f, 37.61f))
                 .build());
 
         // 3. Пытаемся удалить категорию и ожидаем ConflictException
