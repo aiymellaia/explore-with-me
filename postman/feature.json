@@ -1,0 +1,699 @@
+{
+  "info": {
+    "_postman_id": "92ebc041-c66a-4815-91f0-b4a527c9f762",
+    "name": "EWM — Comments Feature Tests",
+    "description": "Тесты функциональности «Комментарии к событиям» в Explore With Me.\nЗапускайте запросы строго по порядку: Setup → Comment Tests → Negative Tests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "53041111",
+    "_collection_link": "https://go.postman.co/collection/53041111-92ebc041-c66a-4815-91f0-b4a527c9f762?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "1. Setup",
+      "item": [
+        {
+          "name": "Create User 1 (Author)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.test('Response has id', () => pm.expect(json).to.have.property('id'));",
+                  "pm.collectionVariables.set('userId1', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"author.one.{{$timestamp}}@ewm-test.com\",\n  \"name\": \"Author One\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create User 2 (Non-Author)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.test('Response has id', () => pm.expect(json).to.have.property('id'));",
+                  "pm.collectionVariables.set('userId2', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"other.user.{{$timestamp}}@ewm-test.com\",\n  \"name\": \"Other User\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('categoryId', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Comment Test Category {{$timestamp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.test('Response has id', () => pm.expect(json).to.have.property('id'));",
+                  "pm.collectionVariables.set('eventId', json.id);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"annotation\": \"Тестовое аннотирование события для комментариев\",\n  \"category\": {{categoryId}},\n  \"description\": \"Тестовое описание события для тестирования комментариев в системе EWM.\",\n  \"eventDate\": \"2030-12-31 12:00:00\",\n  \"location\": { \"lat\": 55.75, \"lon\": 37.62 },\n  \"paid\": false,\n  \"participantLimit\": 0,\n  \"requestModeration\": false,\n  \"title\": \"Тестовое событие для комментариев\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId1}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId1}}",
+                "events"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Publish Event (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Event state is PUBLISHED', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.state).to.equal('PUBLISHED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stateAction\": \"PUBLISH_EVENT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/events/{{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "events",
+                "{{eventId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Создание необходимых данных: пользователи, категория, событие, публикация"
+    },
+    {
+      "name": "2. Comment Tests",
+      "item": [
+        {
+          "name": "1. POST Create Comment (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 201 Created', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('Ответ содержит ID комментария', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.expect(json.id).to.be.a('number');",
+                  "  pm.collectionVariables.set('commentId', json.id);",
+                  "});",
+                  "",
+                  "pm.test('Текст совпадает с отправленным', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.text).to.equal('Это мой первый комментарий к событию!');",
+                  "});",
+                  "",
+                  "pm.test('Ответ содержит поле author', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('author');",
+                  "  pm.expect(json.author).to.have.property('id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Sharer-User-Id",
+                "value": "{{userId1}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Это мой первый комментарий к событию!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}",
+                "comments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2. GET Comments (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Ответ является массивом', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Массив содержит хотя бы один элемент', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.length).to.be.above(0);",
+                  "});",
+                  "",
+                  "pm.test('Первый элемент имеет поля id, text, author', () => {",
+                  "  const first = pm.response.json()[0];",
+                  "  pm.expect(first).to.have.property('id');",
+                  "  pm.expect(first).to.have.property('text');",
+                  "  pm.expect(first).to.have.property('author');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}",
+                "comments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3. PATCH Update Comment (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Текст комментария обновлён', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.text).to.equal('Обновлённый текст комментария.');",
+                  "});",
+                  "",
+                  "pm.test('ID комментария совпадает', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.id).to.equal(Number(pm.collectionVariables.get('commentId')));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Sharer-User-Id",
+                "value": "{{userId1}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Обновлённый текст комментария.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{commentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "{{commentId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4. DELETE Comment (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 204 No Content', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Sharer-User-Id",
+                "value": "{{userId1}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{commentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "{{commentId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Позитивные тесты CRUD для комментариев"
+    },
+    {
+      "name": "3. Negative Tests",
+      "item": [
+        {
+          "name": "Prepare: Create Comment for Auth Test",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201 Created (prepare)', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('commentId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Sharer-User-Id",
+                "value": "{{userId1}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Комментарий для теста защиты авторства\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}",
+                "comments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5. POST Error — Empty Text (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 400 Bad Request', () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test('Ответ содержит описание ошибки', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('status');",
+                  "  pm.expect(json.status).to.equal('BAD_REQUEST');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Sharer-User-Id",
+                "value": "{{userId1}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}",
+                "comments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6. PATCH Error — Not Author (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 409 Conflict', () => pm.response.to.have.status(409));",
+                  "",
+                  "pm.test('Ответ содержит сообщение об ошибке', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('message');",
+                  "});",
+                  "",
+                  "pm.test('Статус ошибки CONFLICT', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.status).to.equal('CONFLICT');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Sharer-User-Id",
+                "value": "{{userId2}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Пытаюсь редактировать чужой комментарий\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{commentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "{{commentId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "7. DELETE Error — Not Found (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 404 Not Found', () => pm.response.to.have.status(404));",
+                  "",
+                  "pm.test('Ответ содержит сообщение об ошибке', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('message');",
+                  "});",
+                  "",
+                  "pm.test('Статус ошибки NOT_FOUND', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.status).to.equal('NOT_FOUND');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Sharer-User-Id",
+                "value": "{{userId1}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/comments/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "999999"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Негативные сценарии: валидация, авторство, несуществующий ресурс"
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "description": "Базовый URL ewm-service (порт 8080 из docker-compose.yml)"
+    },
+    {
+      "key": "userId1",
+      "value": ""
+    },
+    {
+      "key": "userId2",
+      "value": ""
+    },
+    {
+      "key": "categoryId",
+      "value": ""
+    },
+    {
+      "key": "eventId",
+      "value": ""
+    },
+    {
+      "key": "commentId",
+      "value": ""
+    }
+  ]
+}
