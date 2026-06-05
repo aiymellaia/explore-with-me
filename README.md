@@ -18,4 +18,4 @@ Template repository for ExploreWithMe project.
 * Просмотр списка комментариев к конкретному событию.
 
 ### Ссылка на пул реквест:
-* https://github.com/aiymellaia/explore-with-me/pull/3
+* https://github.com/aiymellaia/explore-with-me/pull/4
